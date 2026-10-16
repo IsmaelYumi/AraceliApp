@@ -37,3 +37,31 @@ export function truncateText(text: string, maxLength: number): string {
   if (!text || text.length <= maxLength) return text;
   return `${text.slice(0, maxLength)}...`;
 }
+
+/**
+ * Calculates human readable pediatric age from a birth date
+ */
+export function calculateAge(birthDateString: string): string {
+  if (!birthDateString) return '';
+  const birth = new Date(birthDateString);
+  if (isNaN(birth.getTime())) return '';
+  const now = new Date();
+  
+  let years = now.getFullYear() - birth.getFullYear();
+  let months = now.getMonth() - birth.getMonth();
+  
+  if (now.getDate() < birth.getDate()) {
+    months--;
+  }
+  if (months < 0) {
+    years--;
+    months += 12;
+  }
+  
+  if (years < 0) return 'Recién nacido';
+  if (years === 0) {
+    return `${Math.max(0, months)} ${months === 1 ? 'mes' : 'meses'}`;
+  }
+  return `${years} ${years === 1 ? 'año' : 'años'}${months > 0 ? ` ${months} ${months === 1 ? 'mes' : 'meses'}` : ''}`;
+}
+

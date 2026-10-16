@@ -9,6 +9,7 @@ export interface AuthResponse {
   accessToken: string;
   refreshToken?: string;
   user: User;
+  message?: string;
 }
 
 export interface AuthState {

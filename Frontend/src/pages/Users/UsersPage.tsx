@@ -291,7 +291,7 @@ export const UsersPage: React.FC = () => {
 
           {/* Role Filter Tabs */}
           <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto">
-            {['ALL', 'ADMIN', 'MANAGER', 'USER'].map((role) => (
+            {['ALL', 'ADMIN', 'MANAGER', 'USER', 'GUEST'].map((role) => (
               <button
                 key={role}
                 onClick={() => setSelectedRole(role)}
@@ -370,9 +370,10 @@ export const UsersPage: React.FC = () => {
               onChange={(e) => setFormData({ ...formData, rol: e.target.value as UserRole })}
               className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer"
             >
-              <option value="USER">USER (Estándar)</option>
-              <option value="MANAGER">MANAGER (Gestor)</option>
+              <option value="USER">USER (Terapeuta / Clínico)</option>
+              <option value="MANAGER">MANAGER (Coordinador / Gestor)</option>
               <option value="ADMIN">ADMIN (Administrador)</option>
+              <option value="GUEST">GUEST (Invitado / Familiar)</option>
             </select>
           </div>
           <Input
@@ -426,9 +427,10 @@ export const UsersPage: React.FC = () => {
               onChange={(e) => setEditFormData({ ...editFormData, rol: e.target.value as UserRole })}
               className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer"
             >
-              <option value="USER">USER (Estándar)</option>
-              <option value="MANAGER">MANAGER (Gestor)</option>
+              <option value="USER">USER (Terapeuta / Clínico)</option>
+              <option value="MANAGER">MANAGER (Coordinador / Gestor)</option>
               <option value="ADMIN">ADMIN (Administrador)</option>
+              <option value="GUEST">GUEST (Invitado / Familiar)</option>
             </select>
           </div>
           <Input

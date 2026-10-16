@@ -1,0 +1,224 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum RolUsuario {
+  ADMIN
+  USER
+  MANAGER
+  GUEST
+}
+
+enum EstadoUsuario {
+  ACTIVE
+  INACTIVE
+  PENDING
+  BLOCKED
+}
+
+enum EstadoPaciente {
+  ACTIVO
+  EN_EVALUACION
+  EGRESADO
+}
+
+enum GeneroPaciente {
+  masculino
+  femenino
+  otro
+}
+
+enum EstadoTerapeuta {
+  ACTIVO
+  INACTIVO
+}
+
+enum EstadoCita {
+  PROGRAMADA
+  COMPLETADA
+  CANCELADA
+}
+
+// ==========================================
+// MODELOS
+// ==========================================
+
+/// Gestión de usuarios del sistema y autenticación (RBAC)
+model Usuario {
+  id        String        @id @default(uuid())
+  nombre    String
+  email     String        @unique
+  password  String?
+  rol       RolUsuario    @default(USER)
+  estado    EstadoUsuario @default(ACTIVE)
+  telefono  String?
+  avatarUrl String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Relación opcional si el usuario es un terapeuta registrado
+  terapeuta Terapeuta?
+
+  @@map("usuarios")
+}
+
+/// Directorio de especialistas / terapeutas del centro
+model Terapeuta {
+  id                String          @id @default(uuid())
+  nombres           String
+  apellidos         String
+  nombreCompleto    String
+  especialidad      String
+  cedulaProfesional String          @unique
+  telefono          String
+  email             String          @unique
+  fechaIngreso      DateTime        @default(now())
+  avatarUrl         String?
+  estado            EstadoTerapeuta @default(ACTIVO)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  // Vínculo con cuenta de usuario (opcional)
+  usuarioId String?  @unique
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+
+  // Relaciones clínicas (N:M a través de Citas/Consultas)
+  citas       Cita[]
+  actividades ActividadClinica[]
+
+  @@map("terapeutas")
+}
+
+/// Ficha clínica integral del paciente pediátrico
+model Paciente {
+  id                    String          @id @default(uuid())
+  codigoExpediente      String          @unique
+  nombres               String
+  apellidos             String
+  nombreCompleto        String
+  fechaNacimiento       DateTime
+  genero                GeneroPaciente? @default(masculino)
+  grupoSanguineo        String?
+  diagnosticoPrincipal  String
+  sala                  String?
+  frecuencia            String?
+  condicionesMedicas    String?
+  observacionesAdmision String?
+  antecedentes          String?
+  avatarUrl             String?
+  estado                EstadoPaciente  @default(ACTIVO)
+  fechaIngreso          DateTime        @default(now())
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  // Información de contacto / tutores
+  tutor           TutorLegal?
+  segundoContacto SegundoContacto?
+
+  // Expediente y seguimiento clínico (N:M con Terapeutas a través de Citas/Consultas)
+  documentosPdf DocumentoPdf[]
+  actividades   ActividadClinica[]
+  citas         Cita[]
+
+  @@map("pacientes")
+}
+
+/// Tutor legal / apoderado principal del infante
+model TutorLegal {
+  id             String   @id @default(uuid())
+  pacienteId     String   @unique
+  paciente       Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nombreCompleto String
+  parentesco     String
+  dni            String?
+  telefono       String
+  email          String?
+  direccion      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("tutores_legales")
+}
+
+/// Contacto secundario de emergencia del infante
+model SegundoContacto {
+  id         String   @id @default(uuid())
+  pacienteId String   @unique
+  paciente   Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nombre     String
+  parentesco String
+  telefono   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("segundos_contactos")
+}
+
+/// Archivos y evaluaciones adjuntas en el expediente del paciente
+model DocumentoPdf {
+  id          String   @id @default(uuid())
+  pacienteId  String
+  paciente    Paciente @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  nombre      String
+  tamano      String
+  fechaSubida DateTime @default(now())
+  url         String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("documentos_pdf")
+}
+
+/// Registro de evolución terapéutica y actividades clínicas
+model ActividadClinica {
+  id              String     @id @default(uuid())
+  pacienteId      String
+  terapeutaId     String?
+  terapeutaNombre String?
+  especialidad    String
+  titulo          String
+  numeroProceso   String
+  duracionMinutos Int        @default(45)
+  fecha           DateTime   @default(now())
+  descripcion     String
+  observaciones   String?
+  revisado        Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  //Relaciones
+  paciente        Paciente   @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  terapeuta       Terapeuta? @relation(fields: [terapeutaId], references: [id], onDelete: SetNull)
+
+  @@map("actividades_clinicas")
+}
+
+/// Programación de citas y sesiones terapéuticas
+model Cita {
+  id          String     @id @default(uuid())
+  pacienteId  String
+  paciente    Paciente   @relation(fields: [pacienteId], references: [id], onDelete: Cascade)
+  terapeutaId String
+  terapeuta   Terapeuta  @relation(fields: [terapeutaId], references: [id], onDelete: Restrict)
+  tipoTerapia String
+  fecha       DateTime
+  horaInicio  String
+  horaFin     String
+  notas       String?
+  estado      EstadoCita @default(PROGRAMADA)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@map("citas")
+}

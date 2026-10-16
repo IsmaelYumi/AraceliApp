@@ -7,10 +7,22 @@ export type EspecialidadTerapeutica =
 
 export interface TutorLegal {
   nombreCompleto: string;
-  parentesco: 'Madre' | 'Padre' | 'Tutor Legal' | 'Abuelo/a';
+  parentesco: 'Madre' | 'Padre' | 'Tutor Legal' | 'Abuelo/a' | string;
+  dni?: string;
   telefono: string;
   email?: string;
   direccion?: string;
+  autorizadoRetiro?: boolean;
+}
+
+export interface DocumentoPdf {
+  id: string;
+  nombre: string;
+  tamano: string;
+  fechaSubida: string;
+  categoria: string;
+  url?: string;
+  subidoPor?: string;
 }
 
 export interface Paciente {
@@ -21,23 +33,48 @@ export interface Paciente {
   nombreCompleto: string;
   fechaNacimiento: string;
   edadTexto: string;
+  genero?: 'masculino' | 'femenino' | 'otro';
+  grupoSanguineo?: string;
   diagnosticoPrincipal: string;
+  sala?: string;
+  frecuencia?: string;
+  condicionesMedicas?: string;
+  observacionesAdmision?: string;
   tutor: TutorLegal;
+  segundoContacto?: {
+    nombre: string;
+    parentesco: string;
+    telefono: string;
+  };
   antecedentes?: string;
   fechaIngreso: string;
   avatarUrl?: string;
   estado: 'ACTIVO' | 'EN_EVALUACION' | 'EGRESADO';
   terapeutaPrincipal?: string;
+  documentosPdf?: DocumentoPdf[];
 }
 
 export interface CreatePacienteDto {
   nombres: string;
   apellidos: string;
   fechaNacimiento: string;
+  genero?: 'masculino' | 'femenino' | 'otro';
+  grupoSanguineo?: string;
   diagnosticoPrincipal: string;
+  sala?: string;
+  frecuencia?: string;
+  condicionesMedicas?: string;
+  observacionesAdmision?: string;
   tutor: TutorLegal;
+  segundoContacto?: {
+    nombre: string;
+    parentesco: string;
+    telefono: string;
+  };
   antecedentes?: string;
   terapeutaPrincipal?: string;
+  avatarUrl?: string;
+  documentosPdf?: DocumentoPdf[];
 }
 
 export interface ActividadClinica {

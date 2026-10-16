@@ -20,6 +20,10 @@ export interface CreateUserDto {
   password?: string;
   rol: UserRole;
   telefono?: string;
+  avatarUrl?: string;
+  especialidad?: string;
+  cedulaProfesional?: string;
+  enfoqueClinico?: string;
 }
 
 export interface UpdateUserDto {
