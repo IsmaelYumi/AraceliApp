@@ -14,12 +14,12 @@ export class CreateCitaDto {
   pacienteId!: string;
 
   @IsString({ message: 'El ID del terapeuta debe ser una cadena de texto' })
-  @IsNotEmpty({ message: 'El ID del terapeuta (terapeutaId) es obligatorio' })
-  terapeutaId!: string;
+  @IsOptional()
+  terapeutaId?: string;
 
   @IsString({ message: 'El tipo de terapia debe ser una cadena de texto' })
-  @IsNotEmpty({ message: 'El tipo de terapia es obligatorio' })
-  tipoTerapia!: string;
+  @IsOptional()
+  tipoTerapia?: string;
 
   @IsDateString(
     {},

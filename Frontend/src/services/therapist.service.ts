@@ -20,10 +20,30 @@ export const therapistService = {
   },
 
   /**
-   * Registrar nuevo terapeuta en el sistema
+   * Registrar nuevo terapeuta en el sistema (la cédula profesional es asignada como su contraseña)
    */
   async create(data: CreateTerapeutaDto): Promise<Terapeuta> {
-    const response = await axiosClient.post<Terapeuta>(API_ENDPOINTS.TERAPEUTAS.BASE, data);
+    const payload = {
+      ...data,
+      password: (data.password || data.cedulaProfesional || '').trim(),
+    };
+    const response = await axiosClient.post<Terapeuta>(API_ENDPOINTS.TERAPEUTAS.BASE, payload);
+    return response.data;
+  },
+
+  /**
+   * Actualizar datos del terapeuta
+   */
+  async update(id: string, data: Partial<CreateTerapeutaDto>): Promise<Terapeuta> {
+    const response = await axiosClient.patch<Terapeuta>(API_ENDPOINTS.TERAPEUTAS.BY_ID(id), data);
+    return response.data;
+  },
+
+  /**
+   * Eliminar o desactivar terapeuta
+   */
+  async delete(id: string): Promise<{ message: string }> {
+    const response = await axiosClient.delete<{ message: string }>(API_ENDPOINTS.TERAPEUTAS.BY_ID(id));
     return response.data;
   },
 };

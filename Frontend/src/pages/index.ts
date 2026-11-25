@@ -4,4 +4,5 @@ export * from './Patients/PatientsDirectory';
 export * from './Patients/PatientDetail';
 export * from './Appointments/AppointmentsCalendar';
 export * from './Therapists/TherapistsDirectory';
+export * from './Therapists/TherapistDetail';
 export * from './NotFound/NotFoundPage';

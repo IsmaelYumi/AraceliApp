@@ -15,6 +15,8 @@ export const API_ENDPOINTS = {
     BASE: '/pacientes',
     BY_ID: (id: string | number) => `/pacientes/${id}`,
     ACTIVIDADES: (id: string | number) => `/pacientes/${id}/actividades`,
+    DOCUMENTOS: (id: string | number) => `/pacientes/${id}/documentos`,
+    DOCUMENTO_BY_ID: (id: string | number, docId: string | number) => `/pacientes/${id}/documentos/${docId}`,
   },
   TERAPEUTAS: {
     BASE: '/terapeutas',
@@ -25,4 +27,5 @@ export const API_ENDPOINTS = {
     BY_DATE: (date: string) => `/citas?fecha=${date}`,
     BY_ID: (id: string | number) => `/citas/${id}`,
   },
+  UPLOAD: '/upload',
 } as const;

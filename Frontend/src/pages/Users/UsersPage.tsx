@@ -14,7 +14,7 @@ import { useUsers } from '../../hooks/useUsers';
 import { useDebounce } from '../../hooks/useDebounce';
 import { useModal } from '../../hooks/useModal';
 import type { User, UserRole, CreateUserDto, UpdateUserDto } from '../../types';
-import { formatDate, getInitials } from '../../utils/formatters';
+import { formatDate } from '../../utils/formatters';
 
 // Common reusable components
 import { Button } from '../../components/common/Button';
@@ -25,8 +25,21 @@ import { Badge } from '../../components/common/Badge';
 import type { BadgeVariant } from '../../components/common/Badge';
 import { Card } from '../../components/common/Card';
 import { Modal } from '../../components/common/Modal';
+import { Avatar } from '../../components/common/Avatar';
 import { EmptyState } from '../../components/feedback/EmptyState';
-import { Alert } from '../../components/feedback/Alert';
+
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'Administrador',
+  USER: 'Terapeuta',
+  GUEST: 'Paciente',
+};
+
+const AVAILABLE_ROLES = [
+  { id: 'ALL', label: 'Todos' },
+  { id: 'ADMIN', label: 'Administradores' },
+  { id: 'USER', label: 'Terapeutas' },
+  { id: 'GUEST', label: 'Pacientes' },
+];
 
 export const UsersPage: React.FC = () => {
   // 1. Decoupled Business Logic Hook
@@ -145,13 +158,16 @@ export const UsersPage: React.FC = () => {
       header: 'Usuario',
       render: (item) => (
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700/60 flex items-center justify-center text-xs font-semibold text-slate-200">
-            {getInitials(item.nombre)}
-          </div>
+          <Avatar
+            src={item.avatarUrl}
+            alt={item.nombre}
+            size="sm"
+            rounded="xl"
+          />
           <div>
-            <span className="font-medium text-slate-100 block text-sm">{item.nombre}</span>
-            <span className="text-xs text-slate-400 flex items-center gap-1">
-              <Mail className="w-3 h-3 text-slate-500" />
+            <span className="font-semibold text-slate-800 block text-sm">{item.nombre}</span>
+            <span className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+              <Mail className="w-3.5 h-3.5 text-slate-400" />
               {item.email}
             </span>
           </div>
@@ -162,9 +178,9 @@ export const UsersPage: React.FC = () => {
       key: 'rol',
       header: 'Rol',
       render: (item) => (
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/50 text-xs font-medium text-slate-300">
-          <Shield className="w-3 h-3 text-brand-400" />
-          <span>{item.rol}</span>
+        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-serenity-50 border border-serenity-200/60 text-xs font-semibold text-serenity-800">
+          <Shield className="w-3.5 h-3.5 text-serenity-600" />
+          <span>{ROLE_LABELS[item.rol] || item.rol}</span>
         </div>
       ),
     },
@@ -177,14 +193,14 @@ export const UsersPage: React.FC = () => {
       key: 'telefono',
       header: 'Teléfono',
       render: (item) => (
-        <span className="text-xs text-slate-400 flex items-center gap-1">
+        <span className="text-xs text-slate-600 font-medium flex items-center gap-1">
           {item.telefono ? (
             <>
-              <Phone className="w-3 h-3 text-slate-500" />
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
               {item.telefono}
             </>
           ) : (
-            '—'
+            <span className="text-slate-400">—</span>
           )}
         </span>
       ),
@@ -193,7 +209,7 @@ export const UsersPage: React.FC = () => {
       key: 'createdAt',
       header: 'Fecha Registro',
       render: (item) => (
-        <span className="text-xs text-slate-400">{formatDate(item.createdAt)}</span>
+        <span className="text-xs text-slate-600 font-medium">{formatDate(item.createdAt)}</span>
       ),
     },
     {
@@ -205,21 +221,21 @@ export const UsersPage: React.FC = () => {
           <button
             title="Cambiar estado"
             onClick={() => toggleStatus(item.id)}
-            className="p-1.5 text-slate-400 hover:text-emerald-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer"
           >
             <Power className="w-4 h-4" />
           </button>
           <button
             title="Editar usuario"
             onClick={() => openEdit(item)}
-            className="p-1.5 text-slate-400 hover:text-brand-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-serenity-600 hover:bg-serenity-50 rounded-lg transition-colors cursor-pointer"
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
             title="Eliminar usuario"
             onClick={() => deleteModal.open(item)}
-            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -234,18 +250,18 @@ export const UsersPage: React.FC = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-xs font-semibold uppercase tracking-wider text-brand-400">
+            <span className="text-xs font-semibold uppercase tracking-wider text-serenity-700">
               Administración
             </span>
             <Badge variant="neutral" size="sm">
               {filteredUsers.length} {filteredUsers.length === 1 ? 'Usuario' : 'Usuarios'}
             </Badge>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-100 tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
             Gestión de Usuarios
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Componentes desacoplados conectados al servicio <code className="text-brand-300">userService</code>.
+          <p className="text-xs sm:text-sm text-slate-500 mt-1">
+            Administración de cuentas y asignación de permisos para el personal y pacientes.
           </p>
         </div>
 
@@ -270,15 +286,8 @@ export const UsersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Info Alert about connection architecture */}
-      <Alert type="info" title="Separación de Conexiones">
-        Esta vista no ejecuta directamente peticiones HTTP. Toda la comunicación pasa por la capa de{' '}
-        <strong className="text-slate-100">servicios</strong> y se consume a través del hook{' '}
-        <code className="text-brand-300 font-mono">useUsers()</code>.
-      </Alert>
-
       {/* Filter and Search Bar */}
-      <Card className="p-4">
+      <Card className="p-4 border border-slate-100 shadow-soft-sm">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="w-full md:w-80">
             <Input
@@ -290,18 +299,18 @@ export const UsersPage: React.FC = () => {
           </div>
 
           {/* Role Filter Tabs */}
-          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full md:w-auto overflow-x-auto">
-            {['ALL', 'ADMIN', 'MANAGER', 'USER', 'GUEST'].map((role) => (
+          <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-xl border border-slate-200/60 w-full md:w-auto overflow-x-auto">
+            {AVAILABLE_ROLES.map(({ id, label }) => (
               <button
-                key={role}
-                onClick={() => setSelectedRole(role)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer shrink-0 ${
-                  selectedRole === role
-                    ? 'bg-brand-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                key={id}
+                onClick={() => setSelectedRole(id)}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer shrink-0 ${
+                  selectedRole === id
+                    ? 'bg-white text-serenity-800 font-semibold shadow-sm border border-slate-200/60'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                 }`}
               >
-                {role === 'ALL' ? 'Todos' : role}
+                {label}
               </button>
             ))}
           </div>
@@ -364,16 +373,15 @@ export const UsersPage: React.FC = () => {
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
           />
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Rol del Usuario</label>
+            <label className="text-xs font-semibold text-slate-700">Rol del Usuario</label>
             <select
               value={formData.rol}
               onChange={(e) => setFormData({ ...formData, rol: e.target.value as UserRole })}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm text-slate-800 outline-none focus:border-serenity-500 focus:ring-2 focus:ring-serenity-500/15 transition-all cursor-pointer shadow-sm"
             >
-              <option value="USER">USER (Terapeuta / Clínico)</option>
-              <option value="MANAGER">MANAGER (Coordinador / Gestor)</option>
+              <option value="USER">USER (Terapeuta)</option>
               <option value="ADMIN">ADMIN (Administrador)</option>
-              <option value="GUEST">GUEST (Invitado / Familiar)</option>
+              <option value="GUEST">GUEST (Paciente / Tutor)</option>
             </select>
           </div>
           <Input
@@ -421,16 +429,15 @@ export const UsersPage: React.FC = () => {
             onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
           />
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-300">Rol del Usuario</label>
+            <label className="text-xs font-semibold text-slate-700">Rol del Usuario</label>
             <select
               value={editFormData.rol}
               onChange={(e) => setEditFormData({ ...editFormData, rol: e.target.value as UserRole })}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg py-2 px-3 text-sm text-slate-100 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 cursor-pointer"
+              className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200 rounded-xl py-2.5 px-3.5 text-sm text-slate-800 outline-none focus:border-serenity-500 focus:ring-2 focus:ring-serenity-500/15 transition-all cursor-pointer shadow-sm"
             >
-              <option value="USER">USER (Terapeuta / Clínico)</option>
-              <option value="MANAGER">MANAGER (Coordinador / Gestor)</option>
+              <option value="USER">USER (Terapeuta)</option>
               <option value="ADMIN">ADMIN (Administrador)</option>
-              <option value="GUEST">GUEST (Invitado / Familiar)</option>
+              <option value="GUEST">GUEST (Paciente / Tutor)</option>
             </select>
           </div>
           <Input
@@ -464,9 +471,9 @@ export const UsersPage: React.FC = () => {
           </>
         }
       >
-        <p className="text-sm text-slate-300">
+        <p className="text-sm text-slate-600">
           ¿Estás seguro de que deseas eliminar al usuario{' '}
-          <strong className="text-white">{deleteModal.data?.nombre}</strong>?
+          <strong className="text-slate-900 font-bold">{deleteModal.data?.nombre}</strong>?
         </p>
       </Modal>
     </div>

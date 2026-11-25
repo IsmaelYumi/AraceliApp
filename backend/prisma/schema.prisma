@@ -7,7 +7,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 // ==========================================
@@ -30,6 +29,7 @@ enum EstadoUsuario {
 
 enum EstadoPaciente {
   ACTIVO
+  INACTIVO
   EN_EVALUACION
   EGRESADO
 }
@@ -112,8 +112,6 @@ model Paciente {
   genero                GeneroPaciente? @default(masculino)
   grupoSanguineo        String?
   diagnosticoPrincipal  String
-  sala                  String?
-  frecuencia            String?
   condicionesMedicas    String?
   observacionesAdmision String?
   antecedentes          String?

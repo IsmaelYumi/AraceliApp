@@ -7,20 +7,25 @@ export type EspecialidadTerapeutica =
 
 export interface TutorLegal {
   nombreCompleto: string;
-  parentesco: 'Madre' | 'Padre' | 'Tutor Legal' | 'Abuelo/a' | string;
+  parentesco: string;
   dni?: string;
   telefono: string;
   email?: string;
   direccion?: string;
-  autorizadoRetiro?: boolean;
+}
+
+export interface SegundoContacto {
+  nombre: string;
+  parentesco: string;
+  telefono: string;
 }
 
 export interface DocumentoPdf {
-  id: string;
+  id?: string;
   nombre: string;
   tamano: string;
-  fechaSubida: string;
-  categoria: string;
+  fechaSubida?: string;
+  categoria?: string;
   url?: string;
   subidoPor?: string;
 }
@@ -36,21 +41,14 @@ export interface Paciente {
   genero?: 'masculino' | 'femenino' | 'otro';
   grupoSanguineo?: string;
   diagnosticoPrincipal: string;
-  sala?: string;
-  frecuencia?: string;
   condicionesMedicas?: string;
   observacionesAdmision?: string;
-  tutor: TutorLegal;
-  segundoContacto?: {
-    nombre: string;
-    parentesco: string;
-    telefono: string;
-  };
   antecedentes?: string;
-  fechaIngreso: string;
   avatarUrl?: string;
-  estado: 'ACTIVO' | 'EN_EVALUACION' | 'EGRESADO';
-  terapeutaPrincipal?: string;
+  estado: 'ACTIVO' | 'INACTIVO' | 'EN_EVALUACION' | 'EGRESADO';
+  fechaIngreso: string;
+  tutor: TutorLegal;
+  segundoContacto?: SegundoContacto;
   documentosPdf?: DocumentoPdf[];
 }
 
@@ -61,19 +59,13 @@ export interface CreatePacienteDto {
   genero?: 'masculino' | 'femenino' | 'otro';
   grupoSanguineo?: string;
   diagnosticoPrincipal: string;
-  sala?: string;
-  frecuencia?: string;
   condicionesMedicas?: string;
   observacionesAdmision?: string;
-  tutor: TutorLegal;
-  segundoContacto?: {
-    nombre: string;
-    parentesco: string;
-    telefono: string;
-  };
   antecedentes?: string;
-  terapeutaPrincipal?: string;
   avatarUrl?: string;
+  estado?: 'ACTIVO' | 'INACTIVO' | 'EN_EVALUACION' | 'EGRESADO';
+  tutor: TutorLegal;
+  segundoContacto?: SegundoContacto;
   documentosPdf?: DocumentoPdf[];
 }
 
@@ -94,11 +86,15 @@ export interface ActividadClinica {
 
 export interface CreateActividadDto {
   pacienteId: string;
+  terapeutaId?: string;
+  terapeutaNombre?: string;
+  especialidad?: string;
   titulo: string;
   numeroProceso: string;
   duracionMinutos: number;
   descripcion: string;
   observaciones?: string;
+  revisado?: boolean;
 }
 
 export interface Terapeuta {
@@ -106,35 +102,44 @@ export interface Terapeuta {
   nombres: string;
   apellidos: string;
   nombreCompleto: string;
-  especialidad: EspecialidadTerapeutica | string;
+  especialidad: string;
   cedulaProfesional: string;
   telefono: string;
   email: string;
   fechaIngreso: string;
-  enfoqueClinico?: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
   estado: 'ACTIVO' | 'INACTIVO';
+  usuarioId?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateTerapeutaDto {
   nombres: string;
   apellidos: string;
+  especialidad: string;
   cedulaProfesional: string;
-  fechaIngreso: string;
-  especialidad: EspecialidadTerapeutica | string;
   telefono: string;
   email: string;
-  enfoqueClinico?: string;
+  fechaIngreso?: string;
+  avatarUrl?: string | null;
+  estado?: 'ACTIVO' | 'INACTIVO';
+  password?: string;
 }
+
+export interface UpdateTerapeutaDto extends Partial<CreateTerapeutaDto> {}
 
 export interface Cita {
   id: string;
   pacienteId: string;
   pacienteNombre: string;
+  pacienteExpediente?: string;
+  pacienteDiagnostico?: string;
+  pacienteAvatar?: string | null;
   pacienteEdad?: string;
   terapeutaId: string;
   terapeutaNombre: string;
-  tipoTerapia: EspecialidadTerapeutica | string;
+  tipoTerapia?: EspecialidadTerapeutica | string;
   fecha: string; // YYYY-MM-DD
   horaInicio: string; // e.g. "09:00"
   horaFin: string; // e.g. "09:45"
@@ -144,10 +149,17 @@ export interface Cita {
 
 export interface CreateCitaDto {
   pacienteId: string;
-  terapeutaId: string;
-  tipoTerapia: string;
+  terapeutaId?: string;
+  tipoTerapia?: string;
   fecha: string;
   horaInicio: string;
   horaFin: string;
   notas?: string;
+}
+
+export interface FilterCitaDto {
+  fecha?: string;
+  pacienteId?: string;
+  terapeutaId?: string;
+  estado?: 'PROGRAMADA' | 'COMPLETADA' | 'CANCELADA';
 }

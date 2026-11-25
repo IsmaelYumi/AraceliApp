@@ -6,9 +6,21 @@ import { JwtProviderModule } from './providers/jwt.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { UsuariosModule } from './modules/usuarios/usuarios.module.js';
 import { CitasModule } from './modules/citas/citas.module.js';
+import { PacientesModule } from './modules/pacientes/pacientes.module.js';
+import { TerapeutasModule } from './modules/terapeutas/terapeutas.module.js';
+import { UploadModule } from './modules/upload/upload.module.js';
 
 @Module({
-  imports: [PrismaModule, JwtProviderModule, AuthModule, UsuariosModule, CitasModule],
+  imports: [
+    PrismaModule,
+    JwtProviderModule,
+    AuthModule,
+    UsuariosModule,
+    CitasModule,
+    PacientesModule,
+    TerapeutasModule,
+    UploadModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

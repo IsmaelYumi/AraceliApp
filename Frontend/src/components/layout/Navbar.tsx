@@ -1,19 +1,20 @@
 import React from 'react';
 import { Menu } from 'lucide-react';
+import { Avatar } from '../common/Avatar';
 
 export type UserRoleType = 'TERAPEUTA' | 'ADMINISTRADOR';
 
 export interface NavbarProps {
   onMenuToggle?: () => void;
-  currentUser?: { nombre: string; email: string; rol?: string };
+  currentUser?: { nombre: string; email: string; rol?: string; avatarUrl?: string };
   currentRole: UserRoleType;
-  onRoleChange: (role: UserRoleType) => void;
+  onRoleChange?: (role: UserRoleType) => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   onMenuToggle,
+  currentUser,
   currentRole,
-  onRoleChange,
 }) => {
   return (
     <header className="sticky top-0 h-16 bg-surface/80 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.03)] z-40 flex items-center justify-between px-6 sm:px-8 border-b border-surface-container select-none">
@@ -29,34 +30,18 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-2 text-on-surface-variant">
           <span className="material-symbols-outlined text-[20px] text-primary">clinical_notes</span>
           <span className="text-xs uppercase tracking-wider font-semibold text-on-surface-variant hidden sm:inline">
-            Clínica Serenity - Atención Temprana
+            Centro de Estimulación Temprana
           </span>
         </div>
       </div>
 
       <div className="flex items-center gap-4">
-        {/* Role toggle badge pill */}
-        <div className="flex items-center bg-surface-container p-1 rounded-xl text-xs">
-          <button
-            onClick={() => onRoleChange('TERAPEUTA')}
-            className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-              currentRole === 'TERAPEUTA'
-                ? 'bg-surface-container-lowest text-primary font-semibold shadow-sm'
-                : 'text-on-surface-variant hover:text-on-surface'
-            }`}
-          >
-            Terapeuta
-          </button>
-          <button
-            onClick={() => onRoleChange('ADMINISTRADOR')}
-            className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
-              currentRole === 'ADMINISTRADOR'
-                ? 'bg-surface-container-lowest text-primary font-semibold shadow-sm'
-                : 'text-on-surface-variant hover:text-on-surface'
-            }`}
-          >
-            Administrador
-          </button>
+        {/* Role indicator badge */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-container text-xs font-semibold text-primary">
+          <span className="material-symbols-outlined text-[16px]">
+            {currentRole === 'ADMINISTRADOR' ? 'admin_panel_settings' : 'medical_services'}
+          </span>
+          <span>{currentRole === 'ADMINISTRADOR' ? 'Administrador' : 'Terapeuta'}</span>
         </div>
 
         <button
@@ -66,9 +51,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           <span className="material-symbols-outlined text-[20px]">help_outline</span>
         </button>
 
-        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-sm">
-          <span className="material-symbols-outlined text-[18px]">person</span>
-        </div>
+        <Avatar
+          src={currentUser?.avatarUrl}
+          alt={currentUser?.nombre || 'Usuario'}
+          size="xs"
+          rounded="full"
+          className="w-8 h-8 rounded-full border border-surface-container shadow-sm"
+        />
       </div>
     </header>
   );

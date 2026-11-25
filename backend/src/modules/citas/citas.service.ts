@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -14,9 +15,32 @@ export class CitasService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Agendar una nueva cita terapéutica
+   * Resuelve el ID de terapeuta asociado al usuario autenticado en el token.
    */
-  async create(dto: CreateCitaDto) {
+  private async resolveTerapeutaId(userPayload?: any): Promise<string | null> {
+    if (!userPayload) return null;
+    if (userPayload.terapeutaId) return userPayload.terapeutaId;
+
+    const terapeutaEncontrado = await this.prisma.terapeuta.findFirst({
+      where: {
+        OR: [
+          userPayload.sub ? { usuarioId: userPayload.sub } : undefined,
+          userPayload.email ? { email: userPayload.email } : undefined,
+          typeof userPayload.email === 'string'
+            ? { email: userPayload.email.toLowerCase() }
+            : undefined,
+        ].filter(Boolean) as any,
+      },
+    });
+
+    return terapeutaEncontrado?.id || null;
+  }
+
+  /**
+   * Agendar una nueva cita terapéutica
+   * Si no se envía terapeutaId en el DTO, se extrae automáticamente del token del usuario autenticado.
+   */
+  async create(dto: CreateCitaDto, userPayload?: any) {
     // 1. Validar existencia del paciente
     const paciente = await this.prisma.paciente.findUnique({
       where: { id: dto.pacienteId },
@@ -27,13 +51,43 @@ export class CitasService {
       );
     }
 
-    // 2. Validar existencia del terapeuta
+    // 2. Determinar el terapeuta responsable
+    let terapeutaId = dto.terapeutaId?.trim() || undefined;
+
+    // Si el usuario no es ADMIN, forzar que la cita se asigne a su propio ID de terapeuta
+    if (userPayload && userPayload.rol !== 'ADMIN') {
+      const myTerapeutaId = await this.resolveTerapeutaId(userPayload);
+      if (myTerapeutaId) {
+        terapeutaId = myTerapeutaId;
+      }
+    }
+
+    if (!terapeutaId && userPayload) {
+      terapeutaId = (await this.resolveTerapeutaId(userPayload)) || undefined;
+    }
+
+    // Fallback: si no se ha encontrado aún (ej. cuenta administradora), vincular al primer terapeuta activo
+    if (!terapeutaId) {
+      const fallbackTerapeuta = await this.prisma.terapeuta.findFirst({
+        where: { estado: 'ACTIVO' },
+      });
+      if (fallbackTerapeuta) {
+        terapeutaId = fallbackTerapeuta.id;
+      }
+    }
+
+    if (!terapeutaId) {
+      throw new BadRequestException(
+        'No hay un especialista o terapeuta registrado en el centro para asociar la cita.',
+      );
+    }
+
     const terapeuta = await this.prisma.terapeuta.findUnique({
-      where: { id: dto.terapeutaId },
+      where: { id: terapeutaId },
     });
     if (!terapeuta) {
       throw new NotFoundException(
-        `Terapeuta con ID "${dto.terapeutaId}" no encontrado.`,
+        `Terapeuta no encontrado en el sistema.`,
       );
     }
 
@@ -50,8 +104,8 @@ export class CitasService {
     const cita = await this.prisma.cita.create({
       data: {
         pacienteId: dto.pacienteId,
-        terapeutaId: dto.terapeutaId,
-        tipoTerapia: dto.tipoTerapia.trim(),
+        terapeutaId: terapeutaId,
+        tipoTerapia: dto.tipoTerapia?.trim() || terapeuta?.especialidad?.trim() || 'Sesión Terapéutica',
         fecha: fechaParsed,
         horaInicio: dto.horaInicio.trim(),
         horaFin: dto.horaFin.trim(),
@@ -65,6 +119,7 @@ export class CitasService {
             nombreCompleto: true,
             codigoExpediente: true,
             diagnosticoPrincipal: true,
+            avatarUrl: true,
           },
         },
         terapeuta: {
@@ -83,11 +138,14 @@ export class CitasService {
   /**
    * Obtener lista de citas con filtros opcionales (por fecha, terapeuta, paciente, estado)
    */
-  async findAll(query?: FilterCitaDto) {
+  async findAll(query?: FilterCitaDto, _userPayload?: any) {
     const where: Record<string, unknown> = {};
 
+    if (query?.terapeutaId) {
+      where.terapeutaId = query.terapeutaId;
+    }
+
     if (query?.pacienteId) where.pacienteId = query.pacienteId;
-    if (query?.terapeutaId) where.terapeutaId = query.terapeutaId;
     if (query?.estado) where.estado = query.estado;
 
     if (query?.fecha) {
@@ -113,6 +171,7 @@ export class CitasService {
             nombreCompleto: true,
             codigoExpediente: true,
             diagnosticoPrincipal: true,
+            avatarUrl: true,
           },
         },
         terapeuta: {
@@ -132,14 +191,14 @@ export class CitasService {
   /**
    * Obtener citas por fecha específica (YYYY-MM-DD)
    */
-  async findByDate(dateStr: string) {
-    return this.findAll({ fecha: dateStr });
+  async findByDate(dateStr: string, userPayload?: any) {
+    return this.findAll({ fecha: dateStr }, userPayload);
   }
 
   /**
    * Obtener detalle de una cita por su ID
    */
-  async findOne(id: string) {
+  async findOne(id: string, _userPayload?: any) {
     const cita = await this.prisma.cita.findUnique({
       where: { id },
       include: {
@@ -149,6 +208,7 @@ export class CitasService {
             nombreCompleto: true,
             codigoExpediente: true,
             diagnosticoPrincipal: true,
+            avatarUrl: true,
           },
         },
         terapeuta: {
@@ -171,8 +231,8 @@ export class CitasService {
   /**
    * Actualizar una cita existente
    */
-  async update(id: string, dto: UpdateCitaDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateCitaDto, userPayload?: any) {
+    await this.findOne(id, userPayload);
 
     if (dto.pacienteId) {
       const paciente = await this.prisma.paciente.findUnique({
@@ -222,6 +282,7 @@ export class CitasService {
             nombreCompleto: true,
             codigoExpediente: true,
             diagnosticoPrincipal: true,
+            avatarUrl: true,
           },
         },
         terapeuta: {
@@ -240,8 +301,8 @@ export class CitasService {
   /**
    * Actualizar únicamente el estado de una cita (PROGRAMADA, COMPLETADA, CANCELADA)
    */
-  async updateStatus(id: string, estado: EstadoCita) {
-    await this.findOne(id);
+  async updateStatus(id: string, estado: EstadoCita, userPayload?: any) {
+    await this.findOne(id, userPayload);
 
     const updated = await this.prisma.cita.update({
       where: { id },
@@ -253,6 +314,7 @@ export class CitasService {
             nombreCompleto: true,
             codigoExpediente: true,
             diagnosticoPrincipal: true,
+            avatarUrl: true,
           },
         },
         terapeuta: {
@@ -271,8 +333,8 @@ export class CitasService {
   /**
    * Eliminar una cita
    */
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, userPayload?: any) {
+    await this.findOne(id, userPayload);
 
     await this.prisma.cita.delete({
       where: { id },
@@ -289,8 +351,16 @@ export class CitasService {
     return {
       ...cita,
       pacienteNombre: cita.paciente?.nombreCompleto || 'Paciente',
+      pacienteExpediente: cita.paciente?.codigoExpediente || '',
+      pacienteDiagnostico: cita.paciente?.diagnosticoPrincipal || '',
+      pacienteAvatar: cita.paciente?.avatarUrl || null,
       terapeutaNombre: cita.terapeuta?.nombreCompleto || 'Terapeuta',
-      fechaFormatted: cita.fecha instanceof Date ? cita.fecha.toISOString().split('T')[0] : cita.fecha,
+      fechaFormatted:
+        cita.fecha instanceof Date
+          ? cita.fecha.toISOString().split('T')[0]
+          : typeof cita.fecha === 'string'
+            ? cita.fecha.split('T')[0]
+            : cita.fecha,
     };
   }
 }

@@ -1,121 +1,38 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { Cita, CreateCitaDto, QueryFilterParams } from '../types';
+import type { Cita, CreateCitaDto, FilterCitaDto } from '../types';
 import { appointmentService } from '../services/appointment.service';
 import { useNotification } from '../context/NotificationContext';
 
-// Current dynamic dates for demo calendar
 const todayStr = new Date().toISOString().split('T')[0];
-const getOffsetDate = (days: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-};
 
-const INITIAL_CITAS: Cita[] = [
-  {
-    id: 'cit_01',
-    pacienteId: 'pac_01',
-    pacienteNombre: 'Mateo García Silva',
-    pacienteEdad: '2a 4m',
-    terapeutaId: 'ter_01',
-    terapeutaNombre: 'Lic. Claudia Morales',
-    tipoTerapia: 'Fonoaudiología',
-    fecha: todayStr,
-    horaInicio: '09:00',
-    horaFin: '09:45',
-    notas: 'Estimulación de fonemas y vocabulario con pictogramas.',
-    estado: 'PROGRAMADA',
-  },
-  {
-    id: 'cit_02',
-    pacienteId: 'pac_02',
-    pacienteNombre: 'Sofía Herrera Castro',
-    pacienteEdad: '1a 11m',
-    terapeutaId: 'ter_02',
-    terapeutaNombre: 'Lic. Mariana Vega',
-    tipoTerapia: 'Estimulación Temprana',
-    fecha: todayStr,
-    horaInicio: '10:30',
-    horaFin: '11:15',
-    notas: 'Circuito motor y equilibrio en rampa blanda.',
-    estado: 'PROGRAMADA',
-  },
-  {
-    id: 'cit_03',
-    pacienteId: 'pac_03',
-    pacienteNombre: 'Liam Torres Navarro',
-    pacienteEdad: '3a 3m',
-    terapeutaId: 'ter_01',
-    terapeutaNombre: 'Lic. Claudia Morales',
-    tipoTerapia: 'Psicomotricidad',
-    fecha: todayStr,
-    horaInicio: '12:00',
-    horaFin: '12:45',
-    notas: 'Integración táctil y prensión fina.',
-    estado: 'PROGRAMADA',
-  },
-  {
-    id: 'cit_04',
-    pacienteId: 'pac_04',
-    pacienteNombre: 'Emma Ortiz Pineda',
-    pacienteEdad: '1a 6m',
-    terapeutaId: 'ter_01',
-    terapeutaNombre: 'Lic. Claudia Morales',
-    tipoTerapia: 'Terapia de deglución',
-    fecha: getOffsetDate(1),
-    horaInicio: '10:00',
-    horaFin: '10:45',
-    notas: 'Evaluación de masticación y texturas semisólidas.',
-    estado: 'PROGRAMADA',
-  },
-  {
-    id: 'cit_05',
-    pacienteId: 'pac_01',
-    pacienteNombre: 'Mateo García Silva',
-    pacienteEdad: '2a 4m',
-    terapeutaId: 'ter_01',
-    terapeutaNombre: 'Lic. Claudia Morales',
-    tipoTerapia: 'Fonoaudiología',
-    fecha: getOffsetDate(2),
-    horaInicio: '09:00',
-    horaFin: '09:45',
-    notas: 'Seguimiento de ordenes y discriminación auditiva.',
-    estado: 'PROGRAMADA',
-  },
-  {
-    id: 'cit_06',
-    pacienteId: 'pac_02',
-    pacienteNombre: 'Sofía Herrera Castro',
-    pacienteEdad: '1a 11m',
-    terapeutaId: 'ter_02',
-    terapeutaNombre: 'Lic. Mariana Vega',
-    tipoTerapia: 'Estimulación Temprana',
-    fecha: getOffsetDate(2),
-    horaInicio: '11:00',
-    horaFin: '11:45',
-    estado: 'PROGRAMADA',
-  },
-];
-
-export function useAppointments(filterParams?: QueryFilterParams) {
-  const [appointments, setAppointments] = useState<Cita[]>(INITIAL_CITAS);
+export function useAppointments(filterParams?: FilterCitaDto) {
+  const [appointments, setAppointments] = useState<Cita[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const { success, error: notifyError } = useNotification();
+
+  const filterParamsKey = JSON.stringify(filterParams);
 
   const fetchAppointments = useCallback(async () => {
     setIsLoading(true);
     try {
       const data = await appointmentService.getAll(filterParams);
-      if (data && data.length > 0) {
-        setAppointments(data);
-      }
-    } catch {
-      // Fallback seamlessly
+      // Ensure date format is YYYY-MM-DD
+      const formatted = (data || []).map((c) => ({
+        ...c,
+        fecha: c.fecha ? c.fecha.split('T')[0] : todayStr,
+      }));
+      setAppointments(formatted);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Error al conectar con la API de citas.';
+      console.warn('API error:', message);
+      setAppointments([]);
     } finally {
       setIsLoading(false);
     }
-  }, [filterParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterParamsKey]);
 
   useEffect(() => {
     fetchAppointments();
@@ -125,7 +42,10 @@ export function useAppointments(filterParams?: QueryFilterParams) {
   const appointmentCountsByDate = useMemo(() => {
     const counts: Record<string, number> = {};
     appointments.forEach((cita) => {
-      counts[cita.fecha] = (counts[cita.fecha] || 0) + 1;
+      const key = cita.fecha ? cita.fecha.split('T')[0] : '';
+      if (key) {
+        counts[key] = (counts[key] || 0) + 1;
+      }
     });
     return counts;
   }, [appointments]);
@@ -133,41 +53,62 @@ export function useAppointments(filterParams?: QueryFilterParams) {
   // Appointments for the currently selected date
   const selectedDateAppointments = useMemo(() => {
     return appointments
-      .filter((c) => c.fecha === selectedDate)
+      .filter((c) => c.fecha === selectedDate || c.fecha?.startsWith(selectedDate))
       .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
   }, [appointments, selectedDate]);
 
   const createAppointment = async (dto: CreateCitaDto, pacienteNombre: string): Promise<Cita | null> => {
     setIsLoading(true);
     try {
-      let created: Cita;
-      try {
-        created = await appointmentService.create(dto);
-      } catch {
-        created = {
-          id: `cit_${Date.now().toString().slice(-4)}`,
-          pacienteId: dto.pacienteId,
-          pacienteNombre,
-          terapeutaId: dto.terapeutaId,
-          terapeutaNombre: 'Lic. Claudia Morales',
-          tipoTerapia: dto.tipoTerapia,
-          fecha: dto.fecha,
-          horaInicio: dto.horaInicio,
-          horaFin: dto.horaFin,
-          notas: dto.notas,
-          estado: 'PROGRAMADA',
-        };
-      }
-
-      setAppointments((prev) => [...prev, created]);
-      success('Cita Agendada', `Cita para ${pacienteNombre} el ${created.fecha} a las ${created.horaInicio}.`);
-      return created;
+      const created = await appointmentService.create(dto);
+      const normalizedCreated: Cita = {
+        ...created,
+        pacienteNombre: created.pacienteNombre || pacienteNombre,
+        fecha: created.fecha ? created.fecha.split('T')[0] : dto.fecha,
+      };
+      setAppointments((prev) => [...prev, normalizedCreated]);
+      success(
+        'Cita Agendada',
+        `Cita para ${pacienteNombre} el ${normalizedCreated.fecha} a las ${normalizedCreated.horaInicio}.`
+      );
+      return normalizedCreated;
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al agendar la cita';
       notifyError('No se pudo agendar', msg);
       return null;
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const updateAppointmentStatus = async (id: string, estado: Cita['estado']): Promise<boolean> => {
+    try {
+      await appointmentService.updateStatus(id, estado);
+      setAppointments((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, estado } : c))
+      );
+      success(
+        'Estado Actualizado',
+        `La cita ha sido marcada como ${estado === 'COMPLETADA' ? 'completada' : estado === 'CANCELADA' ? 'cancelada' : 'programada'}.`
+      );
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al actualizar estado de la cita';
+      notifyError('No se pudo actualizar', msg);
+      return false;
+    }
+  };
+
+  const deleteAppointment = async (id: string): Promise<boolean> => {
+    try {
+      await appointmentService.delete(id);
+      setAppointments((prev) => prev.filter((c) => c.id !== id));
+      success('Cita Eliminada', 'La cita se eliminó del calendario.');
+      return true;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error al eliminar la cita';
+      notifyError('No se pudo eliminar', msg);
+      return false;
     }
   };
 
@@ -180,6 +121,8 @@ export function useAppointments(filterParams?: QueryFilterParams) {
     isLoading,
     fetchAppointments,
     createAppointment,
+    updateAppointmentStatus,
+    deleteAppointment,
   };
 }
 

@@ -5,3 +5,4 @@ export * from './Modal';
 export * from './Table';
 export * from './Badge';
 export * from './Spinner';
+export * from './Avatar';

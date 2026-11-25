@@ -50,7 +50,6 @@ export class UsuariosController {
   ) {
     return this.usuariosService.updateStatus(id, estado);
   }
-
   @Delete(':id')
   async eliminarUsuario(@Param('id') id: string) {
     return this.usuariosService.remove(id);

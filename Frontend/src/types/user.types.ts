@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'USER' | 'MANAGER' | 'GUEST';
+export type UserRole = 'ADMIN' | 'USER' | 'GUEST';
 
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'BLOCKED';
 
@@ -10,6 +10,9 @@ export interface User {
   estado: UserStatus;
   telefono?: string;
   avatarUrl?: string;
+  terapeutaId?: string | null;
+  especialidad?: string | null;
+  cedulaProfesional?: string | null;
   createdAt: string;
   updatedAt: string;
 }

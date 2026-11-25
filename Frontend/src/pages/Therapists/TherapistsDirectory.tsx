@@ -12,18 +12,25 @@ import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
 import { Input } from '../../components/common/Input';
+import { Avatar } from '../../components/common/Avatar';
 import { useTherapists } from '../../hooks/useTherapists';
 import { useModal } from '../../hooks/useModal';
 import { formatDate } from '../../utils/formatters';
-import type { CreateTerapeutaDto, EspecialidadTerapeutica } from '../../types';
+import { uploadService } from '../../services/upload.service';
+import type { CreateTerapeutaDto } from '../../types';
 
 export interface TherapistsDirectoryProps {
+  onSelectTherapist?: (id: string) => void;
   onOpenRegister?: () => void;
 }
 
-export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
+export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = ({
+  onSelectTherapist,
+  onOpenRegister,
+}) => {
   const { therapists, isLoading, createTherapist } = useTherapists();
   const registerModal = useModal<void>();
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   // Form state in 2 symmetric columns as specified in PRD
   const [formData, setFormData] = useState<CreateTerapeutaDto>({
@@ -34,14 +41,40 @@ export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
     especialidad: 'Fonoaudiología',
     telefono: '',
     email: '',
-    enfoqueClinico: '',
+    avatarUrl: '',
   });
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const uploadRes = await uploadService.upload(file);
+      setFormData((prev) => ({ ...prev, avatarUrl: uploadRes.url }));
+    } catch (err) {
+      console.warn('Upload to Cloudinary failed, fallback to base64', err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === 'string') {
+          setFormData((prev) => ({ ...prev, avatarUrl: reader.result as string }));
+        }
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nombres.trim() || !formData.apellidos.trim() || !formData.cedulaProfesional.trim()) return;
 
-    const created = await createTherapist(formData);
+    const payload = {
+      ...formData,
+      password: formData.cedulaProfesional.trim(),
+    };
+    const created = await createTherapist(payload);
     if (created) {
       registerModal.close();
       setFormData({
@@ -52,7 +85,7 @@ export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
         especialidad: 'Fonoaudiología',
         telefono: '',
         email: '',
-        enfoqueClinico: '',
+        avatarUrl: '',
       });
     }
   };
@@ -81,7 +114,7 @@ export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
         <Button
           variant="primary"
           size="md"
-          onClick={() => registerModal.open()}
+          onClick={() => (onOpenRegister ? onOpenRegister() : registerModal.open())}
           leftIcon={<UserPlus className="w-4 h-4" />}
         >
           Registrar Nuevo Terapeuta
@@ -93,18 +126,21 @@ export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
         {therapists.map((terapeuta) => (
           <Card
             key={terapeuta.id}
-            className="p-6 flex flex-col justify-between border-none shadow-soft-sm hover:shadow-soft-md transition-all"
+            onClick={() => onSelectTherapist?.(terapeuta.id)}
+            className="p-6 flex flex-col justify-between border-none shadow-soft-sm hover:shadow-soft-md transition-all cursor-pointer group hover:ring-2 hover:ring-primary/20"
           >
             <div>
               {/* Specialist Header */}
               <div className="flex items-start justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3.5">
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-serenity-500 to-mint-400 text-white font-bold text-base flex items-center justify-center shadow-soft-sm shrink-0">
-                    {terapeuta.nombres[0]}
-                    {terapeuta.apellidos[0]}
-                  </div>
+                  <Avatar
+                    src={terapeuta.avatarUrl}
+                    alt={terapeuta.nombreCompleto}
+                    size="lg"
+                    rounded="2xl"
+                  />
                   <div>
-                    <h3 className="font-bold text-base text-slate-800 leading-snug">
+                    <h3 className="font-bold text-base text-slate-800 leading-snug group-hover:text-primary transition-colors">
                       {terapeuta.nombreCompleto}
                     </h3>
                     <p className="text-xs font-semibold text-serenity-700 flex items-center gap-1.5 mt-0.5">
@@ -112,7 +148,7 @@ export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
                       {terapeuta.especialidad}
                     </p>
                     <span className="text-[11px] text-slate-400 block mt-0.5">
-                      Cédula: <strong className="text-slate-600 font-mono">{terapeuta.cedulaProfesional}</strong>
+                      CÉDULA: <strong className="text-slate-600 font-mono">{terapeuta.cedulaProfesional}</strong>
                     </span>
                   </div>
                 </div>
@@ -137,17 +173,21 @@ export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
                   <span>Fecha de Ingreso: {formatDate(terapeuta.fechaIngreso)}</span>
                 </div>
               </div>
-
-              {terapeuta.enfoqueClinico && (
-                <p className="text-xs text-slate-500 leading-relaxed px-1">
-                  <strong className="text-slate-700 font-medium">Enfoque Clínico:</strong> {terapeuta.enfoqueClinico}
-                </p>
-              )}
             </div>
 
             <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400">
               <span>Especialista Clínico Infantil</span>
-              <span className="text-serenity-700 font-semibold">Ficha Profesional Activa</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectTherapist?.(terapeuta.id);
+                }}
+                className="inline-flex items-center gap-1.5 text-primary hover:text-on-primary-container font-semibold transition group-hover:underline cursor-pointer"
+              >
+                <span>Ver Expediente</span>
+                <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+              </button>
             </div>
           </Card>
         ))}
@@ -177,6 +217,38 @@ export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
         }
       >
         <form onSubmit={handleRegisterSubmit} className="space-y-4">
+          {/* Foto de Perfil (Cloudinary) */}
+          <div className="flex items-center gap-4 p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+            <Avatar
+              src={formData.avatarUrl}
+              alt="Foto del Terapeuta"
+              size="lg"
+              rounded="xl"
+              className="shrink-0"
+            />
+            <div className="flex-1 min-w-0">
+              <span className="text-xs font-semibold text-slate-700 block mb-1">
+                Foto del Terapeuta (Subida a Cloudinary)
+              </span>
+              <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-medium text-slate-700 hover:bg-slate-50 cursor-pointer transition shadow-xs">
+                <span className="material-symbols-outlined text-[16px]">cloud_upload</span>
+                <span>{isUploadingAvatar ? 'Subiendo a Cloudinary...' : 'Seleccionar Imagen'}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarFileChange}
+                  disabled={isUploadingAvatar}
+                />
+              </label>
+              {formData.avatarUrl && (
+                <span className="text-[11px] text-emerald-600 block mt-1 font-medium">
+                  ✓ Foto vinculada con Cloudinary
+                </span>
+              )}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             {/* Columna 1 (Básica) */}
             <div className="space-y-3.5">
@@ -198,7 +270,7 @@ export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
                 onChange={(e) => setFormData({ ...formData, apellidos: e.target.value })}
               />
               <Input
-                label="Cédula Profesional"
+                label="CÉDULA"
                 placeholder="Ej. CED-7829104"
                 required
                 value={formData.cedulaProfesional}
@@ -216,25 +288,15 @@ export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
             {/* Columna 2 (Clínica y Contacto) */}
             <div className="space-y-3.5">
               <h4 className="text-xs font-bold uppercase tracking-wider text-serenity-800 pb-1 border-b border-slate-100">
-                Columna 2: Clínica y Contacto
+                Columna 2: Especialidad y Contacto
               </h4>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-700">Especialidad Principal</label>
-                <select
-                  value={formData.especialidad}
-                  onChange={(e) =>
-                    setFormData({ ...formData, especialidad: e.target.value as EspecialidadTerapeutica })
-                  }
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs text-slate-700 outline-none focus:border-serenity-500 cursor-pointer"
-                >
-                  <option value="Fonoaudiología">Fonoaudiología</option>
-                  <option value="Estimulación Temprana">Estimulación Temprana</option>
-                  <option value="Terapia Ocupacional">Terapia Ocupacional</option>
-                  <option value="Psicomotricidad">Psicomotricidad</option>
-                  <option value="Psicología Infantil">Psicología Infantil</option>
-                </select>
-              </div>
-
+              <Input
+                label="Especialidad Principal"
+                placeholder="Escribe la especialidad (ej. Estimulación Temprana)"
+                required
+                value={formData.especialidad}
+                onChange={(e) => setFormData({ ...formData, especialidad: e.target.value })}
+              />
               <Input
                 label="Teléfono / WhatsApp"
                 placeholder="+52 55 3210 9876"
@@ -245,16 +307,10 @@ export const TherapistsDirectory: React.FC<TherapistsDirectoryProps> = () => {
               <Input
                 label="Correo Electrónico Corporativo"
                 type="email"
-                placeholder="especialista@serenitychildcare.org"
+                placeholder="especialista@estimulaciontemprana.com"
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-              <Input
-                label="Notas sobre Enfoque Clínico"
-                placeholder="Áreas de subespecialidad o metodología terapéutica..."
-                value={formData.enfoqueClinico || ''}
-                onChange={(e) => setFormData({ ...formData, enfoqueClinico: e.target.value })}
               />
             </div>
           </div>

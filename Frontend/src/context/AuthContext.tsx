@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { User, LoginCredentials } from '../types';
+import type { User, LoginCredentials, AuthResponse } from '../types';
 import { authService } from '../services/auth.service';
 
 interface AuthContextType {
@@ -7,7 +7,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (credentials: LoginCredentials) => Promise<void>;
+  login: (credentials: LoginCredentials) => Promise<AuthResponse>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
 }
@@ -28,18 +28,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setToken(stored.token);
           setUser(stored.user);
         } else {
-          // Provide default mock user for development preview if not logged in
-          const demoUser: User = {
-            id: 'usr_admin_01',
-            nombre: 'Araceli Dev Admin',
-            email: 'admin@araceli.app',
-            rol: 'ADMIN',
-            estado: 'ACTIVE',
-            telefono: '+1 (555) 019-2834',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          };
-          setUser(demoUser);
+          setUser(null);
+          setToken(null);
         }
       } catch (err) {
         console.error('Error initializing auth state:', err);
@@ -51,12 +41,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeAuth();
   }, []);
 
-  const login = useCallback(async (credentials: LoginCredentials) => {
+  const login = useCallback(async (credentials: LoginCredentials): Promise<AuthResponse> => {
     setIsLoading(true);
     try {
       const response = await authService.login(credentials);
       setToken(response.accessToken);
       setUser(response.user);
+      return response;
     } finally {
       setIsLoading(false);
     }

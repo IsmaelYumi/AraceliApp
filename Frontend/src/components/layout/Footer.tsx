@@ -6,7 +6,7 @@ export const Footer: React.FC = () => {
       <div className="flex items-center gap-2">
         <span className="font-semibold text-slate-700">Centro de Estimulación Temprana</span>
         <span>•</span>
-        <span>Serenity Childcare v1.0</span>
+        <span>Versión 1.0</span>
       </div>
       <div>
         <span>Plataforma Web de Gestión Clínica y Terapéutica</span>

@@ -34,6 +34,22 @@ export const patientService = {
   },
 
   /**
+   * Actualizar expediente o estado del paciente
+   */
+  async update(id: string, data: Partial<CreatePacienteDto>): Promise<Paciente> {
+    const response = await axiosClient.patch<Paciente>(API_ENDPOINTS.PACIENTES.BY_ID(id), data);
+    return response.data;
+  },
+
+  /**
+   * Eliminar paciente y todos sus registros asociados
+   */
+  async delete(id: string): Promise<{ message: string }> {
+    const response = await axiosClient.delete<{ message: string }>(API_ENDPOINTS.PACIENTES.BY_ID(id));
+    return response.data;
+  },
+
+  /**
    * Obtener historial clínico / actividades del paciente
    */
   async getActivities(pacienteId: string): Promise<ActividadClinica[]> {
@@ -50,6 +66,27 @@ export const patientService = {
     const response = await axiosClient.post<ActividadClinica>(
       API_ENDPOINTS.PACIENTES.ACTIVIDADES(data.pacienteId),
       data
+    );
+    return response.data;
+  },
+
+  /**
+   * Adjuntar documento PDF al expediente del paciente
+   */
+  async addDocument(pacienteId: string, data: { nombre: string; tamano: string; url?: string }): Promise<any> {
+    const response = await axiosClient.post(
+      API_ENDPOINTS.PACIENTES.DOCUMENTOS(pacienteId),
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Eliminar documento PDF del expediente
+   */
+  async deleteDocument(pacienteId: string, docId: string): Promise<any> {
+    const response = await axiosClient.delete(
+      API_ENDPOINTS.PACIENTES.DOCUMENTO_BY_ID(pacienteId, docId)
     );
     return response.data;
   },

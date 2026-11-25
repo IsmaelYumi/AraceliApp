@@ -60,15 +60,69 @@ export class AuthService {
       );
     }
 
+    let terapeuta = user.terapeuta;
+    if (!terapeuta) {
+      terapeuta = await this.prisma.terapeuta.findFirst({
+        where: {
+          OR: [
+            { email: emailLower },
+            { usuarioId: user.id },
+          ],
+        },
+      });
+      if (terapeuta && !terapeuta.usuarioId) {
+        await this.prisma.terapeuta.update({
+          where: { id: terapeuta.id },
+          data: { usuarioId: user.id },
+        });
+      }
+    }
+
+    const effectiveAvatar = user.avatarUrl || terapeuta?.avatarUrl || null;
+
+    // Sincronizar avatar en base de datos si uno lo tiene y el otro no
+    if (effectiveAvatar) {
+      if (!user.avatarUrl) {
+        await this.prisma.usuario.update({
+          where: { id: user.id },
+          data: { avatarUrl: effectiveAvatar },
+        });
+      }
+      if (terapeuta && !terapeuta.avatarUrl) {
+        await this.prisma.terapeuta.update({
+          where: { id: terapeuta.id },
+          data: { avatarUrl: effectiveAvatar },
+        });
+      }
+    }
+
     const tokenPayload = {
       sub: user.id,
       email: user.email,
       nombre: user.nombre,
       rol: user.rol,
+      avatarUrl: effectiveAvatar,
+      terapeutaId: terapeuta?.id || null,
+      especialidad: terapeuta?.especialidad || null,
     };
 
     const accessToken = await this.jwtProvider.generateToken(tokenPayload);
-    const { password: _password, ...userSanitized } = user;
+    const { password: _password, ...rawSanitized } = user;
+
+    const userSanitized = {
+      ...rawSanitized,
+      avatarUrl: effectiveAvatar,
+      terapeutaId: terapeuta?.id || null,
+      especialidad: terapeuta?.especialidad || null,
+      cedulaProfesional: terapeuta?.cedulaProfesional || null,
+      telefono: user.telefono || terapeuta?.telefono || null,
+      terapeuta: terapeuta
+        ? {
+            ...terapeuta,
+            avatarUrl: terapeuta.avatarUrl || effectiveAvatar,
+          }
+        : null,
+    };
 
     return {
       message: 'Inicio de sesión exitoso',
@@ -102,9 +156,10 @@ export class AuthService {
     const rol = registerDto.rol ?? RolUsuario.USER;
     const estado = EstadoUsuario.ACTIVE;
 
-    // 3. Hashear contraseña si se proporcionó (el paciente no accede al sistema, no necesita contraseña)
-    const hashedPassword = registerDto.password?.trim()
-      ? await bcrypt.hash(registerDto.password.trim(), 10)
+    // 3. Hashear contraseña (si es terapeuta y no especificó contraseña, la cédula es la contraseña)
+    const rawPassword = registerDto.password?.trim() || registerDto.cedulaProfesional?.trim();
+    const hashedPassword = rawPassword
+      ? await bcrypt.hash(rawPassword, 10)
       : `$LOCKED_NO_ACCESS$${crypto.randomUUID()}`;
 
     // 4. Crear registro en la tabla de usuarios
@@ -195,7 +250,45 @@ export class AuthService {
       throw new NotFoundException('Usuario no encontrado');
     }
 
-    const { password: _password, ...userSanitized } = user;
-    return userSanitized;
+    let terapeuta = user.terapeuta;
+    if (!terapeuta) {
+      terapeuta = await this.prisma.terapeuta.findFirst({
+        where: {
+          OR: [
+            { email: user.email },
+            { email: user.email.toLowerCase() },
+            { usuarioId: user.id },
+          ],
+        },
+      });
+      if (terapeuta && !terapeuta.usuarioId) {
+        try {
+          await this.prisma.terapeuta.update({
+            where: { id: terapeuta.id },
+            data: { usuarioId: user.id },
+          });
+        } catch {
+          // Continuar sin interrumpir el flujo si ya está vinculado
+        }
+      }
+    }
+
+    const effectiveAvatar = user.avatarUrl || terapeuta?.avatarUrl || null;
+    const { password: _password, ...rawSanitized } = user;
+
+    return {
+      ...rawSanitized,
+      avatarUrl: effectiveAvatar,
+      terapeutaId: terapeuta?.id || null,
+      especialidad: terapeuta?.especialidad || null,
+      cedulaProfesional: terapeuta?.cedulaProfesional || null,
+      telefono: user.telefono || terapeuta?.telefono || null,
+      terapeuta: terapeuta
+        ? {
+            ...terapeuta,
+            avatarUrl: terapeuta.avatarUrl || effectiveAvatar,
+          }
+        : null,
+    };
   }
 }

@@ -7,7 +7,7 @@ export interface MainLayoutProps {
   children: React.ReactNode;
   activeNavId: string;
   onNavigate: (id: string) => void;
-  currentUser?: { nombre: string; email: string; rol?: string };
+  currentUser?: { nombre: string; email: string; rol?: string; avatarUrl?: string };
   currentRole: UserRoleType;
   onRoleChange: (role: UserRoleType) => void;
   onLogout?: () => void;
@@ -31,6 +31,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         activeId={activeNavId}
         onSelect={onNavigate}
         currentRole={currentRole}
+        currentUser={currentUser}
         isOpenMobile={isMobileMenuOpen}
         onCloseMobile={() => setIsMobileMenuOpen(false)}
         onLogout={onLogout}

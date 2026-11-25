@@ -1,6 +1,7 @@
 import React from 'react';
 import { LogOut, X } from 'lucide-react';
 import type { UserRoleType } from './Navbar';
+import { Avatar } from '../common/Avatar';
 
 export interface NavItem {
   id: string;
@@ -12,6 +13,7 @@ export interface SidebarProps {
   activeId: string;
   onSelect: (id: string) => void;
   currentRole: UserRoleType;
+  currentUser?: { nombre: string; email: string; rol?: string; avatarUrl?: string };
   isOpenMobile?: boolean;
   onCloseMobile?: () => void;
   onLogout?: () => void;
@@ -21,6 +23,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   activeId,
   onSelect,
   currentRole,
+  currentUser,
   isOpenMobile = false,
   onCloseMobile,
   onLogout,
@@ -29,14 +32,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'dashboard', label: 'Dashboard', iconName: 'grid_view' },
     { id: 'pacientes', label: 'Pacientes', iconName: 'child_care' },
     { id: 'citas', label: 'Agendar Citas', iconName: 'calendar_today' },
-    { id: 'configuracion', label: 'Configuración', iconName: 'settings' },
   ];
 
   const adminItems: NavItem[] = [
-    { id: 'pacientes', label: 'Pacientes', iconName: 'child_care' },
     { id: 'terapeutas', label: 'Terapeutas', iconName: 'medical_services' },
-    { id: 'citas', label: 'Agendar Citas', iconName: 'calendar_today' },
-    { id: 'configuracion', label: 'Configuración', iconName: 'settings' },
+    { id: 'pacientes', label: 'Pacientes', iconName: 'child_care' },
   ];
 
   const currentNavItems = currentRole === 'TERAPEUTA' ? therapistItems : adminItems;
@@ -55,7 +55,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 Centro de Estimulación
               </span>
               <span className="text-[11px] text-primary font-medium block">
-                Childcare &amp; Therapy
+                Temprana
               </span>
             </div>
           </div>
@@ -70,17 +70,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        {/* User Specialist Profile Card from main_html.html */}
+        {/* User Specialist Profile Card */}
         <div className="p-3.5 rounded-xl bg-surface-container-low flex items-center gap-3">
           <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shrink-0 shadow-[0_2px_8px_rgba(28,100,142,0.12)] text-on-primary font-bold text-base">
             <span className="material-symbols-outlined text-[24px]">person</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold text-on-surface truncate">
-              {currentRole === 'TERAPEUTA' ? 'Dra. Sofía Mendoza' : 'Administración'}
+              {currentUser?.nombre || (currentRole === 'TERAPEUTA' ? 'Terapeuta Especialista' : 'Dirección Administrativa')}
             </div>
             <div className="text-xs text-secondary truncate font-medium">
-              {currentRole === 'TERAPEUTA' ? 'Terapeuta Infantil' : 'Gestión y Registro'}
+              {currentRole === 'TERAPEUTA' ? 'Terapeuta Infantil' : 'Gestión y Accesos'}
             </div>
           </div>
         </div>
@@ -111,8 +111,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
       </div>
 
-      {/* Bottom Info badge from main_html.html */}
+      {/* Bottom User info & Center info */}
       <div className="pt-4 border-t border-surface-container space-y-3">
+        {currentUser && (
+          <div className="p-2.5 rounded-xl bg-surface-container-low border border-surface-container flex items-center gap-3">
+            <Avatar
+              src={currentUser.avatarUrl}
+              alt={currentUser.nombre}
+              size="sm"
+              rounded="full"
+              className="border border-surface-container shrink-0"
+            />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-on-surface truncate">{currentUser.nombre}</p>
+              <p className="text-[10px] text-on-surface-variant truncate">{currentUser.email}</p>
+            </div>
+          </div>
+        )}
+
         <div className="p-3 rounded-xl bg-tertiary-fixed/30 flex items-center gap-3">
           <span className="material-symbols-outlined text-tertiary text-[20px]">psychology_alt</span>
           <div className="text-left">

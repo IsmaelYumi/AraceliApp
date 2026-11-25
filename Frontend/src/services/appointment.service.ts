@@ -1,12 +1,12 @@
 import { axiosClient } from '../api/axiosClient';
 import { API_ENDPOINTS } from '../constants/endpoints';
-import type { Cita, CreateCitaDto, QueryFilterParams } from '../types';
+import type { Cita, CreateCitaDto, FilterCitaDto } from '../types';
 
 export const appointmentService = {
   /**
-   * Obtener todas las citas
+   * Obtener todas las citas usando FilterCitaDto
    */
-  async getAll(params?: QueryFilterParams): Promise<Cita[]> {
+  async getAll(params?: FilterCitaDto): Promise<Cita[]> {
     const response = await axiosClient.get<Cita[]>(API_ENDPOINTS.CITAS.BASE, { params });
     return response.data;
   },
@@ -30,8 +30,16 @@ export const appointmentService = {
   /**
    * Cancelar o actualizar estado de cita
    */
-  async updateStatus(id: string, estado: Cita['estado']): Promise<void> {
-    await axiosClient.patch(API_ENDPOINTS.CITAS.BY_ID(id), { estado });
+  async updateStatus(id: string, estado: Cita['estado']): Promise<Cita> {
+    const response = await axiosClient.patch<Cita>(`${API_ENDPOINTS.CITAS.BASE}/${id}/status`, { estado });
+    return response.data;
+  },
+
+  /**
+   * Eliminar cita
+   */
+  async delete(id: string): Promise<void> {
+    await axiosClient.delete(`${API_ENDPOINTS.CITAS.BASE}/${id}`);
   },
 };
 
